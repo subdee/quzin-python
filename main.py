@@ -1,12 +1,18 @@
+from PyQt5.QtGui import QPixmap
+
+LEIDSCHENVEEN = "5cc8dc652542c04e6c0ea0e08e0bef72", 52.067357, 4.403365
+KALAMATA = "5cc8dc652542c04e6c0ea0e08e0bef72", 37.042237, 22.114126
+
 import datetime
+import json
 import sys
 from lxml import html
 import requests
 from PyQt5.QtCore import QSize
-import resources
 from googleapiclient.discovery import build
-from PyQt5 import QtCore, uic, QtWidgets
+from PyQt5 import QtCore, uic
 from PyQt5.QtWidgets import *
+from darksky import forecast
 
 
 class MainWindow(QMainWindow):
@@ -17,7 +23,7 @@ class MainWindow(QMainWindow):
 
         return service
 
-    def update_label(self):
+    def set_datetime(self):
         current_time = str(datetime.datetime.now().strftime("%H:%M\n%a, %d %b"))
         self.timeLabel.setText(current_time)
 
@@ -90,20 +96,55 @@ class MainWindow(QMainWindow):
         self.recipeTitle.setText(title_text)
         self.recipeDock.show()
 
+    def show_season_items(self, index):
+        data = json.load(open("season_items.json"))
+        self.seasonItems.setPlainText(data[index])
+        
+    def set_weather(self):
+        weather = forecast(*LEIDSCHENVEEN, units="si", lang="el")
+        weather_text = "{:.1f}".format(weather.temperature) + "°C"
+        weather_icon = QPixmap("icons/" + weather.icon + ".png")
+        print(weather.icon)
+        self.weatherIconLabel.setPixmap(weather_icon)
+        self.weatherIconLabel.setScaledContents(True)
+        self.weatherLabel.setText(weather_text)
+        self.weatherLabel.setToolTip(weather.daily[0].summary)
+
+    def set_season_items(self):
+        month = datetime.datetime.now().month - 1
+        self.show_season_items(month)
+
     def __init__(self):
         super(self.__class__, self).__init__()
 
-        uic.loadUi('mainwindow.ui', self)
+        uic.loadUi("mainwindow.ui", self)
 
-        self.timer = QtCore.QTimer(self)
-        self.timer.setInterval(1000)
-        self.timer.timeout.connect(lambda: self.update_label())
-        self.timer.start()
+        self.set_datetime()
+        self.set_weather()
+        self.set_season_items()
+
+        self.datetime_timer = QtCore.QTimer(self)
+        self.datetime_timer.setInterval(60000)
+        self.datetime_timer.timeout.connect(lambda: self.set_datetime())
+        self.datetime_timer.start()
+
+        self.weather_timer = QtCore.QTimer(self)
+        self.weather_timer.setInterval(3600000)
+        self.weather_timer.timeout.connect(lambda: self.set_weather())
+        self.weather_timer.start()
+
+        self.seasons_timer = QtCore.QTimer(self)
+        self.seasons_timer.setInterval(86400000)
+        self.seasons_timer.timeout.connect(lambda: self.set_season_items())
+        self.seasons_timer.start()
 
         self.searchBtn.clicked.connect(self.search_recipes)
         self.searchBtn.setAutoDefault(True)
         self.searchInput.returnPressed.connect(self.searchBtn.click)
         self.searchResultsList.currentItemChanged.connect(self.show_recipe)
+
+        self.seasonMonthSelect.currentIndexChanged.connect(self.show_season_items)
+        self.seasonMonthSelect.setCurrentIndex(datetime.datetime.now().month - 1)
 
 
 def main():

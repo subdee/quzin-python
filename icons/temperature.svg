@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 135.46667 135.46667" height="512" width="512">
+    <defs>
+        <marker orient="auto" id="b" overflow="visible">
+            <path d="M.98 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" fill="#f55" fill-rule="evenodd" stroke="#f55"
+                  stroke-width=".267"/>
+        </marker>
+        <marker orient="auto" id="a" overflow="visible">
+            <path d="M.98 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" fill="#ccc" fill-rule="evenodd" stroke="#ccc"
+                  stroke-width=".267"/>
+        </marker>
+    </defs>
+    <g stroke-width="14.779">
+        <path d="M66.378 112.596c.013-31.726.027-5.63.04-95.235" fill="#ccc" stroke="#ccc" stroke-linecap="round"
+              marker-start="url(#a)" transform="translate(-1.182 -4.687) scale(1.03824)"/>
+        <path d="M66.378 112.596c.02-16.338.04-2.9.06-49.043" fill="#f55" stroke="#f55" marker-start="url(#b)"
+              transform="translate(-1.182 -4.687) scale(1.03824)"/>
+    </g>
+</svg>
