@@ -4,9 +4,9 @@ block_cipher = None
 
 
 a = Analysis(['main.py'],
-             pathex=['/home/subdee/Projects/quzin'],
+             pathex=['/home/subdee/Projects/quzin-python'],
              binaries=[],
-             datas=[],
+             datas=[('icons/*.png', 'icons'), ('season_items.json', '.'), ('mainwindow.ui', '.')],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
@@ -18,16 +18,12 @@ pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 exe = EXE(pyz,
           a.scripts,
-          exclude_binaries=True,
-          name='main',
+          a.binaries,
+          a.zipfiles,
+          a.datas,
+          name='quzin',
           debug=False,
           strip=False,
           upx=True,
+          runtime_tmpdir=None,
           console=True )
-coll = COLLECT(exe,
-               a.binaries,
-               a.zipfiles,
-               a.datas,
-               strip=False,
-               upx=True,
-               name='main')

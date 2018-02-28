@@ -1,8 +1,7 @@
+import os
 from PyQt5.QtGui import QPixmap
-
-LEIDSCHENVEEN = "5cc8dc652542c04e6c0ea0e08e0bef72", 52.067357, 4.403365
-KALAMATA = "5cc8dc652542c04e6c0ea0e08e0bef72", 37.042237, 22.114126
-
+import resources
+import keyboardlineedit
 import datetime
 import json
 import sys
@@ -13,6 +12,19 @@ from googleapiclient.discovery import build
 from PyQt5 import QtCore, uic
 from PyQt5.QtWidgets import *
 from darksky import forecast
+
+LEIDSCHENVEEN = "5cc8dc652542c04e6c0ea0e08e0bef72", 52.067357, 4.403365
+KALAMATA = "5cc8dc652542c04e6c0ea0e08e0bef72", 37.042237, 22.114126
+
+if getattr(sys, 'frozen', False):
+    # we are running in a bundle
+    bundle_dir = sys._MEIPASS
+else:
+    # we are running in a normal Python environment
+    bundle_dir = os.path.dirname(os.path.abspath(__file__))
+guipath = os.path.join(bundle_dir, 'mainwindow.ui')
+jsonpath = os.path.join(bundle_dir, 'season_items.json')
+iconspath = os.path.join(bundle_dir, 'icons/')
 
 
 class MainWindow(QMainWindow):
@@ -97,13 +109,13 @@ class MainWindow(QMainWindow):
         self.recipeDock.show()
 
     def show_season_items(self, index):
-        data = json.load(open("season_items.json"))
+        data = json.load(open(jsonpath))
         self.seasonItems.setPlainText(data[index])
-        
+
     def set_weather(self):
         weather = forecast(*LEIDSCHENVEEN, units="si", lang="el")
         weather_text = "{:.1f}".format(weather.temperature) + "°C"
-        weather_icon = QPixmap("icons/" + weather.icon + ".png")
+        weather_icon = QPixmap(iconspath + weather.icon + ".png")
         print(weather.icon)
         self.weatherIconLabel.setPixmap(weather_icon)
         self.weatherIconLabel.setScaledContents(True)
@@ -117,7 +129,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(self.__class__, self).__init__()
 
-        uic.loadUi("mainwindow.ui", self)
+        uic.loadUi(guipath, self)
 
         self.set_datetime()
         self.set_weather()
