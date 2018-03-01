@@ -20,12 +20,15 @@ if getattr(sys, 'frozen', False):
 else:
     # we are running in a normal Python environment
     bundle_dir = os.path.dirname(os.path.abspath(__file__))
-guipath = os.path.join(bundle_dir, 'mainwindow.ui')
-jsonpath = os.path.join(bundle_dir, 'season_items.json')
-iconspath = os.path.join(bundle_dir, 'icons/')
+
 configpath = 'config'
 configParser = configparser.RawConfigParser()
 configParser.read(configpath)
+
+guipath = os.path.join(bundle_dir, 'mainwindow.ui')
+jsonpath = os.path.join(bundle_dir, 'season_items.json')
+iconspath = os.path.join(bundle_dir, 'icons/')
+translationpath = os.path.join(bundle_dir, 'translations/' + configParser.get('general', 'lang') + '.qm')
 
 
 class MainWindow(QMainWindow):
@@ -164,7 +167,7 @@ class MainWindow(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     translator = QtCore.QTranslator()
-    translator.load(QtCore.QLocale.system().name() + '.qm')
+    translator.load(translationpath)
     app.installTranslator(translator)
     form = MainWindow()
     form.show()
