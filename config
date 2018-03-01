@@ -1,11 +1,11 @@
 [general]
-lang=el
+lang=
 
 [weather]
-key=5cc8dc652542c04e6c0ea0e08e0bef72
-latitude=52.067357
-longitude=4.403365
+key=
+latitude=
+longitude=
 
 [recipes]
-cx=006492090401638723872:ovfp61qkljo
-developer_key=AIzaSyC4kDelotzwM_L8VxbZ68InOIIFa3_epE4
+cx=
+developer_key=
