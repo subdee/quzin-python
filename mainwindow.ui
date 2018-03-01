@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Quzin</string>
   </property>
   <property name="styleSheet">
    <string notr="true">QMainWindow &gt; QWidget { background-color: white;}</string>
@@ -503,7 +503,7 @@ Mon, 01 Jan</string>
      <string/>
     </property>
     <property name="placeholderText">
-     <string>αναζήτηση συνταγής</string>
+     <string>search recipe</string>
     </property>
    </widget>
    <widget class="QPushButton" name="searchBtn">
@@ -650,7 +650,7 @@ Mon, 01 Jan</string>
        </rect>
       </property>
       <property name="text">
-       <string>Οδηγίες</string>
+       <string>Instruction</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -669,62 +669,62 @@ Mon, 01 Jan</string>
     </property>
     <item>
      <property name="text">
-      <string>Ιανουάριος</string>
+      <string>January</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>Φεβρουάριος</string>
+      <string>February</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>Μάρτιος</string>
+      <string>March</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>Απρίλιος</string>
+      <string>April</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>Μάιος</string>
+      <string>May</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>Ιούνιος</string>
+      <string>June</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>Ιούλιος</string>
+      <string>July</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>Αύγουστος</string>
+      <string>August</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>Σεπτέμβριος</string>
+      <string>September</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>Οκτώβριος</string>
+      <string>October</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>Νοέμβριος</string>
+      <string>November</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>Δεκέμβριος</string>
+      <string>December</string>
      </property>
     </item>
    </widget>

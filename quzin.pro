@@ -36,3 +36,6 @@ FORMS += \
 
 RESOURCES += \
     resources.qrc
+
+TRANSLATIONS += \
+    el_GR.ts

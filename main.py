@@ -8,7 +8,7 @@ import sys
 import configparser
 from lxml import html
 import requests
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, QCoreApplication
 from googleapiclient.discovery import build
 from PyQt5 import QtCore, uic
 from PyQt5.QtWidgets import *
@@ -51,7 +51,7 @@ class MainWindow(QMainWindow):
         ).execute()
         items = response.get("items")
         if items is None:
-            listItem = QListWidgetItem("Δεν υπήρξαν αποτελέσματα")
+            listItem = QListWidgetItem(QCoreApplication.translate("main", "No recipes found"))
             self.searchResultsList.addItem(listItem)
         else:
             for item in items:
@@ -119,7 +119,6 @@ class MainWindow(QMainWindow):
                            lang=configParser.get('general', 'lang'))
         weather_text = "{:.1f}".format(weather.temperature) + "°C"
         weather_icon = QPixmap(iconspath + weather.icon + ".png")
-        print(weather.icon)
         self.weatherIconLabel.setPixmap(weather_icon)
         self.weatherIconLabel.setScaledContents(True)
         self.weatherLabel.setText(weather_text)
@@ -164,6 +163,9 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
+    translator = QtCore.QTranslator()
+    translator.load(QtCore.QLocale.system().name() + '.qm')
+    app.installTranslator(translator)
     form = MainWindow()
     form.show()
     sys.exit(app.exec_())
