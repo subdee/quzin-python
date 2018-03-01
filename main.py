@@ -5,6 +5,7 @@ import keyboardlineedit
 import datetime
 import json
 import sys
+import configparser
 from lxml import html
 import requests
 from PyQt5.QtCore import QSize
@@ -12,9 +13,6 @@ from googleapiclient.discovery import build
 from PyQt5 import QtCore, uic
 from PyQt5.QtWidgets import *
 from darksky import forecast
-
-LEIDSCHENVEEN = "5cc8dc652542c04e6c0ea0e08e0bef72", 52.067357, 4.403365
-KALAMATA = "5cc8dc652542c04e6c0ea0e08e0bef72", 37.042237, 22.114126
 
 if getattr(sys, 'frozen', False):
     # we are running in a bundle
@@ -25,13 +23,16 @@ else:
 guipath = os.path.join(bundle_dir, 'mainwindow.ui')
 jsonpath = os.path.join(bundle_dir, 'season_items.json')
 iconspath = os.path.join(bundle_dir, 'icons/')
+configpath = 'config'
+configParser = configparser.RawConfigParser()
+configParser.read(configpath)
 
 
 class MainWindow(QMainWindow):
 
     def getService(self):
         service = build("customsearch", "v1",
-                        developerKey="AIzaSyC4kDelotzwM_L8VxbZ68InOIIFa3_epE4")
+                        developerKey=configParser.get('recipes', 'developer_key'))
 
         return service
 
@@ -45,8 +46,8 @@ class MainWindow(QMainWindow):
         service = self.getService()
         response = service.cse().list(
             q=search_value,
-            cx="006492090401638723872:ovfp61qkljo",
-            lr="lang_el"
+            cx=configParser.get('recipes', 'cx'),
+            lr="lang_" + configParser.get('general', 'lang')
         ).execute()
         items = response.get("items")
         if items is None:
@@ -113,7 +114,9 @@ class MainWindow(QMainWindow):
         self.seasonItems.setPlainText(data[index])
 
     def set_weather(self):
-        weather = forecast(*LEIDSCHENVEEN, units="si", lang="el")
+        weather = forecast(configParser.get('weather', 'key'), configParser.get('weather', 'latitude'),
+                           configParser.get('weather', 'longitude'), units="si",
+                           lang=configParser.get('general', 'lang'))
         weather_text = "{:.1f}".format(weather.temperature) + "°C"
         weather_icon = QPixmap(iconspath + weather.icon + ".png")
         print(weather.icon)
