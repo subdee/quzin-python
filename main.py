@@ -170,7 +170,7 @@ def main():
     translator.load(translationpath)
     app.installTranslator(translator)
     form = MainWindow()
-    form.showFullScreen()
+    form.showMaximized()
     sys.exit(app.exec_())
 
 
