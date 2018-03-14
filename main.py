@@ -1,3 +1,4 @@
+import http.client
 import os
 from PyQt5.QtGui import QPixmap
 import resources
@@ -7,12 +8,12 @@ import json
 import sys
 import configparser
 from lxml import html
-import requests
 from PyQt5.QtCore import QSize, QCoreApplication
 from googleapiclient.discovery import build
 from PyQt5 import QtCore, uic
 from PyQt5.QtWidgets import *
 from darksky import forecast
+from slackclient import SlackClient
 
 if getattr(sys, 'frozen', False):
     # we are running in a bundle
@@ -32,6 +33,7 @@ translationpath = os.path.join(bundle_dir, 'translations/' + configParser.get('g
 
 
 class MainWindow(QMainWindow):
+    last_glympse = ("", False)
 
     def getService(self):
         service = build("customsearch", "v1",
@@ -66,8 +68,10 @@ class MainWindow(QMainWindow):
     def show_recipe(self, curr):
         if curr is None:
             return
-        page = requests.get(curr.data(32))
-        tree = html.fromstring(page.text)
+        conn = http.client.HTTPConnection(curr.data(32))
+        response = conn.getresponse()
+        page = response.read().decode("utf-8")
+        tree = html.fromstring(page)
         ingredientSections = tree.cssselect(".ingredients-list p")
         ingredients = tree.cssselect(".ingredients-list ul")
         method_steps = tree.cssselect(".recipe-main .method .text ul")
@@ -120,16 +124,66 @@ class MainWindow(QMainWindow):
         weather = forecast(configParser.get('weather', 'key'), configParser.get('weather', 'latitude'),
                            configParser.get('weather', 'longitude'), units="si",
                            lang=configParser.get('general', 'lang'))
-        weather_text = "{:.1f}".format(weather.temperature) + "°C"
+        weather_text = "{:.1f}".format(weather.temperature) + "°C\n"
         weather_icon = QPixmap(iconspath + weather.icon + ".png")
         self.weatherIconLabel.setPixmap(weather_icon)
         self.weatherIconLabel.setScaledContents(True)
         self.weatherLabel.setText(weather_text)
-        self.weatherLabel.setToolTip(weather.daily[0].summary)
+        self.weatherSummaryLabel.setText(weather.daily[0].summary)
 
     def set_season_items(self):
         month = datetime.datetime.now().month - 1
         self.show_season_items(month)
+
+    def get_glympse_code(self):
+        if self.last_glympse[1]:
+            return self.last_glympse[0]
+
+        sc = SlackClient(configParser.get("slack", "token"))
+        resp = sc.api_call("groups.history", channel=configParser.get("slack", "channel"), count=1)
+        if not resp["ok"]:
+            return
+
+        message = resp["messages"][0]
+        link = message["attachments"][0]["title_link"]
+        code = link[-9:]
+        if code == self.last_glympse[0]:
+            return self.last_glympse[0]
+
+        self.last_glympse = (code, True)
+
+        return code
+
+    def set_glympse(self, glympse_code):
+        if not self.last_glympse[1]:
+            self.glympseLabel.setText(QCoreApplication.translate("main", "No known routes"))
+            return
+        conn = http.client.HTTPConnection("api.glympse.com")
+        headers = {
+            'Content-Type': "application/json",
+            'Authorization': "Bearer " + configParser.get("glympse", "oauth_key"),
+            'Cache-Control': "no-cache"
+        }
+        conn.request("GET", "/v2/invites/" + glympse_code, headers=headers)
+        res = conn.getresponse()
+        data = res.read().decode("utf-8")
+        data = json.loads(data)
+        eta = None
+        now = datetime.datetime.now()
+        if data["result"] == "failure":
+            self.glympseLabel.setText(QCoreApplication.translate("main", "No known routes"))
+            self.last_glympse = (glympse_code, False)
+            return
+        for property in data["response"]["properties"]:
+            if property["n"] == "eta":
+                eta = now + datetime.timedelta(0, property["v"]["eta"] / 1000)
+        if eta is None or eta < now:
+            self.glympseLabel.setText(QCoreApplication.translate("main", "No known routes"))
+            self.last_glympse = (glympse_code, False)
+        else:
+            eta_formatted = eta.strftime("%H:%M")
+            self.glympseLabel.setText(QCoreApplication.translate("main", "ETA") + ": " + eta_formatted)
+            self.last_glympse = (glympse_code, True)
 
     def __init__(self):
         super(self.__class__, self).__init__()
@@ -139,6 +193,7 @@ class MainWindow(QMainWindow):
         self.set_datetime()
         self.set_weather()
         self.set_season_items()
+        self.set_glympse(self.get_glympse_code())
 
         self.datetime_timer = QtCore.QTimer(self)
         self.datetime_timer.setInterval(60000)
@@ -155,6 +210,11 @@ class MainWindow(QMainWindow):
         self.seasons_timer.timeout.connect(lambda: self.set_season_items())
         self.seasons_timer.start()
 
+        self.glympse_timer = QtCore.QTimer(self)
+        self.glympse_timer.setInterval(60000)
+        self.glympse_timer.timeout.connect(lambda: self.set_glympse(self.get_glympse_code()))
+        self.glympse_timer.start()
+
         self.searchBtn.clicked.connect(self.search_recipes)
         self.searchBtn.setAutoDefault(True)
         self.searchInput.returnPressed.connect(self.searchBtn.click)
@@ -165,7 +225,7 @@ class MainWindow(QMainWindow):
 
 
 def main():
-    app = QApplication(sys.argv)
+    app = QApplication(["Quzin"])
     translator = QtCore.QTranslator()
     translator.load(translationpath)
     app.installTranslator(translator)
