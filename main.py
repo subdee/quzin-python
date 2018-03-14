@@ -1,5 +1,7 @@
 import http.client
 import os
+
+import requests
 from PyQt5.QtGui import QPixmap
 import resources
 import keyboardlineedit
@@ -68,10 +70,8 @@ class MainWindow(QMainWindow):
     def show_recipe(self, curr):
         if curr is None:
             return
-        conn = http.client.HTTPConnection(curr.data(32))
-        response = conn.getresponse()
-        page = response.read().decode("utf-8")
-        tree = html.fromstring(page)
+        page = requests.get(curr.data(32))
+        tree = html.fromstring(page.text)
         ingredientSections = tree.cssselect(".ingredients-list p")
         ingredients = tree.cssselect(".ingredients-list ul")
         method_steps = tree.cssselect(".recipe-main .method .text ul")
@@ -145,6 +145,8 @@ class MainWindow(QMainWindow):
             return
 
         message = resp["messages"][0]
+        if "attachments" not in message:
+            return self.last_glympse[0]
         link = message["attachments"][0]["title_link"]
         code = link[-9:]
         if code == self.last_glympse[0]:
