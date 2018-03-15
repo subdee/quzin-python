@@ -1,14 +1,19 @@
+#!/usr/bin/python
+
 import http.client
 import os
+import webbrowser
 
 import requests
 from PyQt5.QtGui import QPixmap
-import resources
-import keyboardlineedit
 import datetime
 import json
 import sys
 import configparser
+import sqlite3
+import resources
+import keyboardlineedit
+import clickablelabel
 from lxml import html
 from PyQt5.QtCore import QSize, QCoreApplication
 from googleapiclient.discovery import build
@@ -28,20 +33,16 @@ configpath = 'config'
 configParser = configparser.RawConfigParser()
 configParser.read(configpath)
 
-guipath = os.path.join(bundle_dir, 'mainwindow.ui')
+guipath = os.path.join(bundle_dir, 'qtcreator/mainwindow.ui')
 jsonpath = os.path.join(bundle_dir, 'season_items.json')
 iconspath = os.path.join(bundle_dir, 'icons/')
 translationpath = os.path.join(bundle_dir, 'translations/' + configParser.get('general', 'lang') + '.qm')
+dbpath = os.path.join(bundle_dir, 'database/recipes.sqlite')
 
 
 class MainWindow(QMainWindow):
     last_glympse = ("", False)
-
-    def getService(self):
-        service = build("customsearch", "v1",
-                        developerKey=configParser.get('recipes', 'developer_key'))
-
-        return service
+    curr_recipe = None
 
     def set_datetime(self):
         current_time = str(datetime.datetime.now().strftime("%H:%M\n%a, %d %b"))
@@ -50,7 +51,7 @@ class MainWindow(QMainWindow):
     def search_recipes(self):
         self.searchResultsList.clear()
         search_value = self.searchInput.text()
-        service = self.getService()
+        service = build("customsearch", "v1", developerKey=configParser.get('recipes', 'developer_key'))
         response = service.cse().list(
             q=search_value,
             cx=configParser.get('recipes', 'cx'),
@@ -67,6 +68,35 @@ class MainWindow(QMainWindow):
                 listItem.setSizeHint(QSize(50, 50))
                 self.searchResultsList.addItem(listItem)
 
+    def view_recipes(self):
+        self.searchResultsList.clear()
+        conn = sqlite3.connect(dbpath)
+        c = conn.cursor()
+        c.execute("SELECT * FROM recipes ORDER BY name ASC")
+        recipes = c.fetchall()
+        conn.close()
+        if recipes is None:
+            listItem = QListWidgetItem(QCoreApplication.translate("main", "No recipes found"))
+            self.searchResultsList.addItem(listItem)
+        else:
+            for recipe in recipes:
+                listItem = QListWidgetItem(recipe[0])
+                listItem.setData(32, recipe[1])
+                listItem.setSizeHint(QSize(50, 50))
+                self.searchResultsList.addItem(listItem)
+
+    def save_recipe(self):
+        if self.curr_recipe is None:
+            return
+        conn = sqlite3.connect(dbpath)
+        c = conn.cursor()
+        try:
+            c.execute("INSERT INTO recipes VALUES (?, ?)", (self.curr_recipe[0], self.curr_recipe[1]))
+        except sqlite3.IntegrityError:
+            print('ERROR: Recipe already exists with name {}'.format(self.curr_recipe[0]))
+        conn.commit()
+        conn.close()
+
     def show_recipe(self, curr):
         if curr is None:
             return
@@ -79,6 +109,7 @@ class MainWindow(QMainWindow):
         ingredient_text = ""
         method_text = ""
         title_text = title[0].text
+        self.curr_recipe = (title_text, curr.data(32))
 
         if ingredientSections:
             if len(ingredients) > len(ingredientSections):
@@ -187,6 +218,14 @@ class MainWindow(QMainWindow):
             self.glympseLabel.setText(QCoreApplication.translate("main", "ETA") + ": " + eta_formatted)
             self.last_glympse = (glympse_code, True)
 
+    def open_weather(self):
+        lat = configParser.get('weather', 'latitude')
+        long = configParser.get('weather', 'longitude')
+        webbrowser.open_new_tab("https://darksky.net/forecast/" + lat + "," + long + "/ca12/en")
+
+    def open_glympse(self):
+        webbrowser.open_new_tab("https://glympse.com/" + self.last_glympse[0])
+
     def __init__(self):
         super(self.__class__, self).__init__()
 
@@ -220,10 +259,16 @@ class MainWindow(QMainWindow):
         self.searchBtn.clicked.connect(self.search_recipes)
         self.searchBtn.setAutoDefault(True)
         self.searchInput.returnPressed.connect(self.searchBtn.click)
-        self.searchResultsList.currentItemChanged.connect(self.show_recipe)
+        self.searchResultsList.itemClicked.connect(self.show_recipe)
+
+        self.viewRecipesBtn.clicked.connect(self.view_recipes)
+        self.saveRecipeBtn.clicked.connect(self.save_recipe)
 
         self.seasonMonthSelect.currentIndexChanged.connect(self.show_season_items)
         self.seasonMonthSelect.setCurrentIndex(datetime.datetime.now().month - 1)
+
+        self.weatherIconLabel.clicked.connect(self.open_weather)
+        self.glympseLabel.clicked.connect(self.open_glympse)
 
 
 def main():

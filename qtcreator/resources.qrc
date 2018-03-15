@@ -3,5 +3,6 @@
         <file>logo-square.png</file>
         <file>search.svg</file>
         <file>logo.png</file>
+        <file>eye.svg</file>
     </qresource>
 </RCC>
