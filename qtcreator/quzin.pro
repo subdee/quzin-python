@@ -32,7 +32,8 @@ HEADERS += \
     keyboardlineedit.h
 
 FORMS += \
-        mainwindow.ui
+        mainwindow.ui \
+    dialog.ui
 
 RESOURCES += \
     resources.qrc

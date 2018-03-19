@@ -34,15 +34,108 @@ configParser = configparser.RawConfigParser()
 configParser.read(configpath)
 
 guipath = os.path.join(bundle_dir, 'qtcreator/mainwindow.ui')
+dialogpath = os.path.join(bundle_dir, 'qtcreator/dialog.ui')
 jsonpath = os.path.join(bundle_dir, 'season_items.json')
 iconspath = os.path.join(bundle_dir, 'icons/')
 translationpath = os.path.join(bundle_dir, 'translations/' + configParser.get('general', 'lang') + '.qm')
 dbpath = os.path.join(bundle_dir, 'database/recipes.sqlite')
 
 
+class RecipeDialog(QDialog):
+    curr = None
+    curr_recipe = (None, None, None)
+
+    def show_recipe(self):
+        if self.curr is None:
+            return
+        meta = self.curr.data(32)
+        if meta == self.curr.text():
+            return self.view_saved_recipe()
+        page = requests.get(self.curr.data(32))
+        tree = html.fromstring(page.text)
+        ingredientSections = tree.cssselect(".ingredients-list p")
+        ingredients = tree.cssselect(".ingredients-list ul")
+        method_steps = tree.cssselect(".recipe-main .method .text ul")
+        title = tree.cssselect(".recipe .title")
+        ingredient_text = ""
+        method_text = ""
+        title_text = title[0].text
+
+        if ingredientSections:
+            if len(ingredients) > len(ingredientSections):
+                for ingredient in ingredients[0]:
+                    ingredient_text += ingredient.text_content()
+                    ingredient_text += "\n"
+                for idx, section in enumerate(ingredientSections):
+                    ingredient_text += "\n"
+                    ingredient_text += ingredientSections[idx].text_content()
+                    ingredient_text += "\n"
+                    for ingredient in ingredients[idx + 1]:
+                        ingredient_text += ingredient.text_content()
+                        ingredient_text += "\n"
+            else:
+                for idx, section in enumerate(ingredientSections):
+                    ingredient_text += "\n"
+                    ingredient_text += ingredientSections[idx].text_content()
+                    ingredient_text += "\n"
+                    for ingredient in ingredients[idx]:
+                        ingredient_text += ingredient.text_content()
+                        ingredient_text += "\n"
+        else:
+            for ingredient in ingredients[0]:
+                ingredient_text += ingredient.text_content()
+                ingredient_text += "\n"
+
+        for step in method_steps[0]:
+            method_text += step.text_content()
+            method_text += "\n"
+
+        self.curr_recipe = (title_text, ingredient_text, method_text)
+        self.fill_recipe_parts(title_text, ingredient_text, method_text)
+
+    def view_saved_recipe(self):
+        conn = sqlite3.connect(dbpath)
+        c = conn.cursor()
+        c.execute("SELECT * FROM recipes WHERE name=?", (self.curr.text(),))
+        recipe = c.fetchone()
+        conn.commit()
+        conn.close()
+        self.fill_recipe_parts(recipe[0], recipe[1], recipe[2], False)
+
+    def save_recipe(self):
+        if self.curr_recipe is None:
+            return
+        conn = sqlite3.connect(dbpath)
+        c = conn.cursor()
+        try:
+            c.execute("INSERT INTO recipes VALUES (?, ?, ?)", (self.curr_recipe[0], self.curr_recipe[1], self.curr_recipe[2]))
+        except sqlite3.IntegrityError:
+            print('ERROR: Recipe already exists with name {}'.format(self.curr_recipe[0]))
+        conn.commit()
+        conn.close()
+
+    def fill_recipe_parts(self, title, ingredients, instructions, show_save_btn=True):
+        self.recipeIngredients.setPlainText(ingredients)
+        self.recipeIngredients.verticalScrollBar().triggerAction(QScrollBar.SliderToMinimum)
+        self.recipeInstructions.setPlainText(instructions)
+        self.recipeIngredients.verticalScrollBar().triggerAction(QScrollBar.SliderToMinimum)
+        self.setWindowTitle(title)
+        if not show_save_btn:
+            self.saveRecipeBtn.hide()
+
+    def set_recipe(self, curr):
+        self.curr = curr
+
+    def __init__(self):
+        super(self.__class__, self).__init__()
+
+        uic.loadUi(dialogpath, self)
+
+        self.saveRecipeBtn.clicked.connect(self.save_recipe)
+
+
 class MainWindow(QMainWindow):
     last_glympse = ("", False)
-    curr_recipe = None
 
     def set_datetime(self):
         current_time = str(datetime.datetime.now().strftime("%H:%M\n%a, %d %b"))
@@ -81,71 +174,16 @@ class MainWindow(QMainWindow):
         else:
             for recipe in recipes:
                 listItem = QListWidgetItem(recipe[0])
-                listItem.setData(32, recipe[1])
+                listItem.setData(32, recipe[0])
                 listItem.setSizeHint(QSize(50, 50))
                 self.searchResultsList.addItem(listItem)
 
-    def save_recipe(self):
-        if self.curr_recipe is None:
-            return
-        conn = sqlite3.connect(dbpath)
-        c = conn.cursor()
-        try:
-            c.execute("INSERT INTO recipes VALUES (?, ?)", (self.curr_recipe[0], self.curr_recipe[1]))
-        except sqlite3.IntegrityError:
-            print('ERROR: Recipe already exists with name {}'.format(self.curr_recipe[0]))
-        conn.commit()
-        conn.close()
-
     def show_recipe(self, curr):
-        if curr is None:
-            return
-        page = requests.get(curr.data(32))
-        tree = html.fromstring(page.text)
-        ingredientSections = tree.cssselect(".ingredients-list p")
-        ingredients = tree.cssselect(".ingredients-list ul")
-        method_steps = tree.cssselect(".recipe-main .method .text ul")
-        title = tree.cssselect(".recipe .title")
-        ingredient_text = ""
-        method_text = ""
-        title_text = title[0].text
-        self.curr_recipe = (title_text, curr.data(32))
-
-        if ingredientSections:
-            if len(ingredients) > len(ingredientSections):
-                for ingredient in ingredients[0]:
-                    ingredient_text += ingredient.text_content()
-                    ingredient_text += "\n"
-                for idx, section in enumerate(ingredientSections):
-                    ingredient_text += "\n"
-                    ingredient_text += ingredientSections[idx].text_content()
-                    ingredient_text += "\n"
-                    for ingredient in ingredients[idx + 1]:
-                        ingredient_text += ingredient.text_content()
-                        ingredient_text += "\n"
-            else:
-                for idx, section in enumerate(ingredientSections):
-                    ingredient_text += "\n"
-                    ingredient_text += ingredientSections[idx].text_content()
-                    ingredient_text += "\n"
-                    for ingredient in ingredients[idx]:
-                        ingredient_text += ingredient.text_content()
-                        ingredient_text += "\n"
-        else:
-            for ingredient in ingredients[0]:
-                ingredient_text += ingredient.text_content()
-                ingredient_text += "\n"
-
-        for step in method_steps[0]:
-            method_text += step.text_content()
-            method_text += "\n"
-
-        self.recipeIngredients.setPlainText(ingredient_text)
-        self.recipeIngredients.verticalScrollBar().triggerAction(QScrollBar.SliderToMinimum)
-        self.recipeInstructions.setPlainText(method_text)
-        self.recipeIngredients.verticalScrollBar().triggerAction(QScrollBar.SliderToMinimum)
-        self.recipeTitle.setText(title_text)
-        self.recipeDock.show()
+        dialog = RecipeDialog()
+        dialog.showMaximized()
+        dialog.set_recipe(curr)
+        dialog.show_recipe()
+        dialog.exec_()
 
     def show_season_items(self, index):
         data = json.load(open(jsonpath))
@@ -262,7 +300,6 @@ class MainWindow(QMainWindow):
         self.searchResultsList.itemClicked.connect(self.show_recipe)
 
         self.viewRecipesBtn.clicked.connect(self.view_recipes)
-        self.saveRecipeBtn.clicked.connect(self.save_recipe)
 
         self.seasonMonthSelect.currentIndexChanged.connect(self.show_season_items)
         self.seasonMonthSelect.setCurrentIndex(datetime.datetime.now().month - 1)

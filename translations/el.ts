@@ -20,16 +20,6 @@ Mon, 01 Jan</source>
         <translation>αναζήτηση συνταγής</translation>
     </message>
     <message>
-        <location filename="../mainwindow.ui" line="595"/>
-        <source>Recipe title</source>
-        <translation>Τίτλος συνταγής</translation>
-    </message>
-    <message>
-        <location filename="../mainwindow.ui" line="653"/>
-        <source>Instruction</source>
-        <translation>Οδηγίες</translation>
-    </message>
-    <message>
         <location filename="../mainwindow.ui" line="672"/>
         <source>January</source>
         <translation>Ιανουάριος</translation>
@@ -98,6 +88,29 @@ Mon, 01 Jan</source>
         <location filename="../mainwindow.ui" line="1219"/>
         <source>Weather</source>
         <translation>Ο καιρός</translation>
+    </message>
+</context>
+<context>
+    <name>Dialog</name>
+    <message>
+        <location filename="dialog.ui" line="14"/>
+        <source>Recipe</source>
+        <translation>Τίτλος συνταγής</translation>
+    </message>
+    <message>
+        <location filename="dialog.ui" line="23"/>
+        <source>Instructions</source>
+        <translation>Εκτέλεση</translation>
+    </message>
+    <message>
+        <location filename="dialog.ui" line="63"/>
+        <source>Ingredients</source>
+        <translation>Συστατικά</translation>
+    </message>
+    <message>
+        <location filename="dialog.ui" line="73"/>
+        <source>Save recipe</source>
+        <translation>Αποθήκευση</translation>
     </message>
 </context>
 <context>
