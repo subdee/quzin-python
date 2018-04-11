@@ -1,14 +1,17 @@
 #!/usr/bin/python
 
+import clickablelabel
 import configparser
 import datetime
 import json
+import keyboardlineedit
+import logging
 import os
 import sqlite3
 import sys
 import webbrowser
-
 import requests
+import resources
 from PyQt5 import QtCore, uic
 from PyQt5.QtCore import QSize, QCoreApplication
 from PyQt5.QtGui import QPixmap
@@ -36,6 +39,7 @@ iconspath = os.path.join(bundle_dir, 'icons/')
 translationpath = os.path.join(bundle_dir, 'translations/' + configParser.get('general', 'lang') + '.qm')
 dbpath = os.path.join(bundle_dir, 'database/recipes.sqlite')
 
+logging.basicConfig(filename=os.path.join(bundle_dir, 'quzin.log'), level=logging.WARNING)
 
 class RecipeDialog(QDialog):
     curr = None
@@ -216,44 +220,47 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(self.__class__, self).__init__()
 
-        uic.loadUi(guipath, self)
+        try:
+            uic.loadUi(guipath, self)
 
-        self.set_datetime()
-        self.set_weather()
-        self.set_season_items()
-        self.set_slack_message()
+            self.set_datetime()
+            self.set_weather()
+            self.set_season_items()
+            self.set_slack_message()
 
-        self.slack_timer = QtCore.QTimer(self)
-        self.slack_timer.setInterval(2000)
-        self.slack_timer.timeout.connect(lambda: self.set_slack_message())
-        self.slack_timer.start()
+            self.slack_timer = QtCore.QTimer(self)
+            self.slack_timer.setInterval(2000)
+            self.slack_timer.timeout.connect(lambda: self.set_slack_message())
+            self.slack_timer.start()
 
-        self.datetime_timer = QtCore.QTimer(self)
-        self.datetime_timer.setInterval(60000)
-        self.datetime_timer.timeout.connect(lambda: self.set_datetime())
-        self.datetime_timer.start()
+            self.datetime_timer = QtCore.QTimer(self)
+            self.datetime_timer.setInterval(60000)
+            self.datetime_timer.timeout.connect(lambda: self.set_datetime())
+            self.datetime_timer.start()
 
-        self.weather_timer = QtCore.QTimer(self)
-        self.weather_timer.setInterval(3600000)
-        self.weather_timer.timeout.connect(lambda: self.set_weather())
-        self.weather_timer.start()
+            self.weather_timer = QtCore.QTimer(self)
+            self.weather_timer.setInterval(3600000)
+            self.weather_timer.timeout.connect(lambda: self.set_weather())
+            self.weather_timer.start()
 
-        self.seasons_timer = QtCore.QTimer(self)
-        self.seasons_timer.setInterval(86400000)
-        self.seasons_timer.timeout.connect(lambda: self.set_season_items())
-        self.seasons_timer.start()
+            self.seasons_timer = QtCore.QTimer(self)
+            self.seasons_timer.setInterval(86400000)
+            self.seasons_timer.timeout.connect(lambda: self.set_season_items())
+            self.seasons_timer.start()
 
-        self.searchBtn.clicked.connect(self.search_recipes)
-        self.searchBtn.setAutoDefault(True)
-        self.searchInput.returnPressed.connect(self.searchBtn.click)
-        self.searchResultsList.itemClicked.connect(self.show_recipe)
+            self.searchBtn.clicked.connect(self.search_recipes)
+            self.searchBtn.setAutoDefault(True)
+            self.searchInput.returnPressed.connect(self.searchBtn.click)
+            self.searchResultsList.itemClicked.connect(self.show_recipe)
 
-        self.viewRecipesBtn.clicked.connect(self.view_recipes)
+            self.viewRecipesBtn.clicked.connect(self.view_recipes)
 
-        self.seasonMonthSelect.currentIndexChanged.connect(self.show_season_items)
-        self.seasonMonthSelect.setCurrentIndex(datetime.datetime.now().month - 1)
+            self.seasonMonthSelect.currentIndexChanged.connect(self.show_season_items)
+            self.seasonMonthSelect.setCurrentIndex(datetime.datetime.now().month - 1)
 
-        self.weatherIconLabel.clicked.connect(self.open_weather)
+            self.weatherIconLabel.clicked.connect(self.open_weather)
+        except Exception as e:
+            logging.exception(e)
 
 
 def main():
