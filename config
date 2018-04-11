@@ -1,5 +1,5 @@
 [general]
-lang=el
+lang=
 
 [weather]
 key=
@@ -9,9 +9,6 @@ longitude=
 [recipes]
 cx=
 developer_key=
-
-[glympse]
-oauth_key=
 
 [slack]
 token=

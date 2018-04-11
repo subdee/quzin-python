@@ -1,25 +1,21 @@
 #!/usr/bin/python
 
-import http.client
+import configparser
+import datetime
+import json
 import os
+import sqlite3
+import sys
 import webbrowser
 
 import requests
-from PyQt5.QtGui import QPixmap
-import datetime
-import json
-import sys
-import configparser
-import sqlite3
-import resources
-import keyboardlineedit
-import clickablelabel
-from lxml import html
-from PyQt5.QtCore import QSize, QCoreApplication
-from googleapiclient.discovery import build
 from PyQt5 import QtCore, uic
+from PyQt5.QtCore import QSize, QCoreApplication
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import *
 from darksky import forecast
+from googleapiclient.discovery import build
+from lxml import html
 from slackclient import SlackClient
 
 if getattr(sys, 'frozen', False):
@@ -135,8 +131,6 @@ class RecipeDialog(QDialog):
 
 
 class MainWindow(QMainWindow):
-    last_glympse = ("", False)
-
     def set_datetime(self):
         current_time = str(datetime.datetime.now().strftime("%H:%M\n%a, %d %b"))
         self.timeLabel.setText(current_time)
@@ -204,65 +198,20 @@ class MainWindow(QMainWindow):
         month = datetime.datetime.now().month - 1
         self.show_season_items(month)
 
-    def get_glympse_code(self):
-        if self.last_glympse[1]:
-            return self.last_glympse[0]
-
+    def set_slack_message(self):
         sc = SlackClient(configParser.get("slack", "token"))
         resp = sc.api_call("groups.history", channel=configParser.get("slack", "channel"), count=1)
         if not resp["ok"]:
             return
 
-        message = resp["messages"][0]
-        if "attachments" not in message:
-            return self.last_glympse[0]
-        link = message["attachments"][0]["title_link"]
-        code = link[-9:]
-        if code == self.last_glympse[0]:
-            return self.last_glympse[0]
+        message = resp["messages"][0]["text"]
 
-        self.last_glympse = (code, True)
-
-        return code
-
-    def set_glympse(self, glympse_code):
-        if not self.last_glympse[1]:
-            self.glympseLabel.setText(QCoreApplication.translate("main", "No known routes"))
-            return
-        conn = http.client.HTTPConnection("api.glympse.com")
-        headers = {
-            'Content-Type': "application/json",
-            'Authorization': "Bearer " + configParser.get("glympse", "oauth_key"),
-            'Cache-Control': "no-cache"
-        }
-        conn.request("GET", "/v2/invites/" + glympse_code, headers=headers)
-        res = conn.getresponse()
-        data = res.read().decode("utf-8")
-        data = json.loads(data)
-        eta = None
-        now = datetime.datetime.now()
-        if data["result"] == "failure":
-            self.glympseLabel.setText(QCoreApplication.translate("main", "No known routes"))
-            self.last_glympse = (glympse_code, False)
-            return
-        for property in data["response"]["properties"]:
-            if property["n"] == "eta":
-                eta = now + datetime.timedelta(0, property["v"]["eta"] / 1000)
-        if eta is None or eta < now:
-            self.glympseLabel.setText(QCoreApplication.translate("main", "No known routes"))
-            self.last_glympse = (glympse_code, False)
-        else:
-            eta_formatted = eta.strftime("%H:%M")
-            self.glympseLabel.setText(QCoreApplication.translate("main", "ETA") + ": " + eta_formatted)
-            self.last_glympse = (glympse_code, True)
+        self.slackMessage.setText(message)
 
     def open_weather(self):
         lat = configParser.get('weather', 'latitude')
         long = configParser.get('weather', 'longitude')
         webbrowser.open_new_tab("https://darksky.net/forecast/" + lat + "," + long + "/ca12/en")
-
-    def open_glympse(self):
-        webbrowser.open_new_tab("https://glympse.com/" + self.last_glympse[0])
 
     def __init__(self):
         super(self.__class__, self).__init__()
@@ -272,7 +221,12 @@ class MainWindow(QMainWindow):
         self.set_datetime()
         self.set_weather()
         self.set_season_items()
-        self.set_glympse(self.get_glympse_code())
+        self.set_slack_message()
+
+        self.slack_timer = QtCore.QTimer(self)
+        self.slack_timer.setInterval(2000)
+        self.slack_timer.timeout.connect(lambda: self.set_slack_message())
+        self.slack_timer.start()
 
         self.datetime_timer = QtCore.QTimer(self)
         self.datetime_timer.setInterval(60000)
@@ -289,11 +243,6 @@ class MainWindow(QMainWindow):
         self.seasons_timer.timeout.connect(lambda: self.set_season_items())
         self.seasons_timer.start()
 
-        self.glympse_timer = QtCore.QTimer(self)
-        self.glympse_timer.setInterval(60000)
-        self.glympse_timer.timeout.connect(lambda: self.set_glympse(self.get_glympse_code()))
-        self.glympse_timer.start()
-
         self.searchBtn.clicked.connect(self.search_recipes)
         self.searchBtn.setAutoDefault(True)
         self.searchInput.returnPressed.connect(self.searchBtn.click)
@@ -305,7 +254,6 @@ class MainWindow(QMainWindow):
         self.seasonMonthSelect.setCurrentIndex(datetime.datetime.now().month - 1)
 
         self.weatherIconLabel.clicked.connect(self.open_weather)
-        self.glympseLabel.clicked.connect(self.open_glympse)
 
 
 def main():

@@ -139,19 +139,6 @@ Mon, 01 Jan</string>
           </property>
          </widget>
         </item>
-        <item row="0" column="5" rowspan="2">
-         <widget class="ClickableLabel" name="glympseLabel">
-          <property name="text">
-           <string>Glympse</string>
-          </property>
-          <property name="scaledContents">
-           <bool>false</bool>
-          </property>
-          <property name="wordWrap">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
         <item row="0" column="1" rowspan="2">
          <widget class="QLabel" name="logoTextLabel">
           <property name="maximumSize">
@@ -211,6 +198,19 @@ Mon, 01 Jan</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="5" rowspan="2">
+         <widget class="QLabel" name="slackMessage">
+          <property name="text">
+           <string>Messages</string>
+          </property>
+          <property name="scaledContents">
+           <bool>false</bool>
           </property>
           <property name="wordWrap">
            <bool>true</bool>
