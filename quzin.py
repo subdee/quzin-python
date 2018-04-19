@@ -19,7 +19,6 @@ from PyQt5.QtWidgets import *
 from darksky import forecast
 from googleapiclient.discovery import build
 from lxml import html
-from slackclient import SlackClient
 
 if getattr(sys, 'frozen', False):
     # we are running in a bundle
@@ -202,16 +201,6 @@ class MainWindow(QMainWindow):
         month = datetime.datetime.now().month - 1
         self.show_season_items(month)
 
-    def set_slack_message(self):
-        sc = SlackClient(configParser.get("slack", "token"))
-        resp = sc.api_call("groups.history", channel=configParser.get("slack", "channel"), count=1)
-        if not resp["ok"]:
-            return
-
-        message = resp["messages"][0]["text"]
-
-        self.slackMessage.setText(message)
-
     def open_weather(self):
         lat = configParser.get('weather', 'latitude')
         long = configParser.get('weather', 'longitude')
@@ -226,12 +215,6 @@ class MainWindow(QMainWindow):
             self.set_datetime()
             self.set_weather()
             self.set_season_items()
-            self.set_slack_message()
-
-            self.slack_timer = QtCore.QTimer(self)
-            self.slack_timer.setInterval(2000)
-            self.slack_timer.timeout.connect(lambda: self.set_slack_message())
-            self.slack_timer.start()
 
             self.datetime_timer = QtCore.QTimer(self)
             self.datetime_timer.setInterval(60000)
@@ -260,7 +243,7 @@ class MainWindow(QMainWindow):
 
             self.weatherIconLabel.clicked.connect(self.open_weather)
         except Exception as e:
-            logging.exception(e)
+            logging.exception(datetime.datetime.now().strftime("%H:%M\n%a, %d %b") + " " + e)
 
 
 def main():
